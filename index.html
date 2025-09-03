@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net;">
+    <title>骑缝章工具</title>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #e74c3c;
+            margin-bottom: 30px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .section {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #e74c3c;
+            padding-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, button {
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            width: 100%;
+        }
+        input[type="file"] {
+            padding: 8px;
+        }
+        input[type="number"] {
+            width: 100px;
+        }
+        button {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #c0392b;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .preview {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        .preview-container {
+            width: 100%;
+            max-height: 400px;
+            overflow: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            background-color: white;
+        }
+        .preview-image {
+            max-width: 100%;
+            max-height: 200px;
+            display: block;
+            margin: 0 auto;
+        }
+        .preview-pdf {
+            width: 100%;
+            height: 400px;
+            border: none;
+        }
+        .stamp-slices {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        .stamp-slice {
+            border: 1px solid #ddd;
+            padding: 5px;
+            background-color: white;
+        }
+        .stamp-slice img {
+            height: 100px;
+        }
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .loading {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+        .hidden {
+            display: none;
+        }
+        /* 加载动画 */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .section {
+                padding: 15px;
+            }
+            .preview-pdf {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>骑缝章工具</h1>
+    <div class="section" style="margin-bottom: 20px;">
+            <p>本工具可以帮助您在PDF文档上添加骑缝章。使用步骤：</p>
+            <ol>
+                <li>上传PNG格式的印章图片</li>
+                <li>上传需要盖骑缝章的PDF文件（系统将自动识别页数并切割印章）</li>
+                <li>生成并下载带有骑缝章的PDF文件</li>
+            </ol>
+        </div>
+    
+    <div class="container">
+        <div class="section">
+            <h2>1. 上传印章</h2>
+            <div class="form-group">
+                <label for="stampFile">选择PNG格式的印章图片：</label>
+                <input type="file" id="stampFile" accept="image/png">
+                <small style="display: block; margin-top: 5px; color: #666;">请上传清晰的PNG格式印章图片，建议使用红色印章效果更佳</small>
+            </div>
+            <div class="preview" id="stampPreview">
+                <div class="preview-container hidden" id="stampPreviewContainer">
+                    <img id="stampImage" class="preview-image" alt="印章预览">
+                </div>
+            </div>
+        </div>
+
+        <div class="section hidden">
+            <h2>印章切片预览</h2>
+            <div class="form-group hidden">
+                <input type="number" id="pageCount" min="2" value="2">
+                <button id="sliceStampBtn" style="display:none;">切割印章</button>
+            </div>
+            <div class="preview" id="slicesPreview">
+                <div class="preview-container hidden" id="slicesPreviewContainer">
+                    <div class="stamp-slices" id="stampSlices"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>2. 上传PDF文件</h2>
+            <div class="form-group">
+                <label for="pdfFile">选择需要盖骑缝章的PDF文件：</label>
+                <input type="file" id="pdfFile" accept="application/pdf">
+                <small style="display: block; margin-top: 5px; color: #666;">上传PDF后会自动更新页数并预览文件内容</small>
+            </div>
+            <div class="preview" id="pdfPreview">
+                <div class="preview-container hidden" id="pdfPreviewContainer">
+                    <iframe id="pdfFrame" class="preview-pdf"></iframe>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>3. 生成骑缝章PDF</h2>
+            <button id="generateBtn" disabled>生成骑缝章PDF</button>
+            <small style="display: block; margin-top: 5px; color: #666;">印章将按照真实印章比例(约42mm直径)调整大小，添加到PDF每页的右侧边缘，位于页面2/3处</small>
+            <div id="statusMessage" class="status hidden"></div>
+            <div class="preview" id="resultPreview">
+                <div class="preview-container hidden" id="resultPreviewContainer">
+                    <iframe id="resultFrame" class="preview-pdf"></iframe>
+                </div>
+            </div>
+            <div class="form-group hidden" id="downloadContainer">
+                <button id="downloadBtn">下载骑缝章PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/build/pdf.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
